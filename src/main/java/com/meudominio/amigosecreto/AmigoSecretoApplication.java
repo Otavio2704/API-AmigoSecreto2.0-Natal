@@ -62,7 +62,7 @@ public class AmigoSecretoApplication {
         }
 
         log.info("\n----------------------------------------------------------\n\t" +
-                "Aplicação '{}' está rodando! Acesse:\n\t" +
+                "Aplicacao '{}' esta rodando! Acesse:\n\t" +
                 "Local:      \t{}://localhost:{}{}\n\t" +
                 "Externo:    \t{}://{}:{}{}\n\t" +
                 "Profile(s): \t{}\n\t" +
@@ -85,3 +85,4 @@ public class AmigoSecretoApplication {
         );
     }
 }
+

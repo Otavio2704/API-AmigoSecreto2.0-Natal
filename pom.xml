@@ -143,7 +143,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                guration>
+                <configuration>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -157,7 +157,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                guration>
+                <configuration>
                     <source>17</source>
                     <target>17</target>
                     <annotationProcessorPaths>
@@ -174,7 +174,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                guration>
+                <configuration>
                     <includes>
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
@@ -186,7 +186,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                guration>
+                <configuration>
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>

@@ -23,8 +23,8 @@ import java.net.UnknownHostException;
  * - Mensagens anônimas entre participantes
  * - Segurança com JWT
  * 
- * @author Seu Nome
- * @version 2.0.0
+ * @author Otávio2704
+ * @version 1.0.0
  * @since 2025
  */
 @SpringBootApplication
@@ -85,4 +85,5 @@ public class AmigoSecretoApplication {
         );
     }
 }
+
 

@@ -313,7 +313,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 - Linkedin: https://www.linkedin.com/in/otavio-backend2007/
 - Meu Website: https://otavio2007-backend.edgeone.app
-- 
+
 ⭐ Se este projeto foi útil para você, considere dar uma estrela no GitHub!
 
 **Feito com ❤️ e ☕ em Suzano-SP, Brasil**

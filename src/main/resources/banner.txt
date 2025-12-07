@@ -1,0 +1,14 @@
+${AnsiColor.BRIGHT_GREEN}          *
+${AnsiColor.BRIGHT_GREEN}         /|\
+${AnsiColor.BRIGHT_RED}        ${AnsiColor.BRIGHT_GREEN}/${AnsiColor.BRIGHT_RED}o${AnsiColor.BRIGHT_GREEN}|\${AnsiColor.BRIGHT_WHITE}o
+${AnsiColor.BRIGHT_GREEN}       /${AnsiColor.BRIGHT_WHITE}o${AnsiColor.BRIGHT_GREEN}/|\${AnsiColor.BRIGHT_RED}o${AnsiColor.BRIGHT_GREEN}\
+${AnsiColor.BRIGHT_RED}      ${AnsiColor.BRIGHT_GREEN}/${AnsiColor.BRIGHT_RED}o${AnsiColor.BRIGHT_GREEN}/${AnsiColor.BRIGHT_WHITE}o${AnsiColor.BRIGHT_GREEN}|${AnsiColor.BRIGHT_RED}o${AnsiColor.BRIGHT_GREEN}\${AnsiColor.BRIGHT_WHITE}o${AnsiColor.BRIGHT_GREEN}\
+${AnsiColor.BRIGHT_GREEN}        |||
+${AnsiColor.BRIGHT_RED}    _             _             ____                     _        
+${AnsiColor.BRIGHT_RED}   / \   _ __ ___ (_) __ _  ___/ ___|  ___  ___ _ __ ___| |_ ___  
+${AnsiColor.BRIGHT_GREEN}  / _ \ | '_ ` _ \| |/ _` |/ _ \___ \ / _ \/ __| '__/ _ \ __/ _ \ 
+${AnsiColor.BRIGHT_GREEN} / ___ \| | | | | | | (_| | (_) |__) |  __/ (__| | |  __/ || (_) |
+${AnsiColor.BRIGHT_WHITE}/_/   \_\_| |_| |_|_|\__, |\___/____/ \___|\___|_|  \___|\__\___/ 
+${AnsiColor.BRIGHT_WHITE}                     |___/                                         
+${AnsiColor.BRIGHT_RED}🎄 ${AnsiColor.BRIGHT_GREEN}:: ${AnsiColor.BRIGHT_WHITE}Amigo Secreto API ${AnsiColor.BRIGHT_RED}2.0 ${AnsiColor.BRIGHT_GREEN}:: ${AnsiColor.BRIGHT_RED}🎅${AnsiColor.DEFAULT}
+${AnsiColor.BRIGHT_WHITE}Spring Boot ${AnsiColor.BRIGHT_GREEN}${spring-boot.version} ${AnsiColor.BRIGHT_RED}| ${AnsiColor.BRIGHT_WHITE}Feliz Natal!${AnsiColor.DEFAULT}

@@ -255,7 +255,9 @@ src/
 │   │   └── AmigoSecretoApplication.java
 │   └── resources/
 │       ├── application.properties
-│       └── application-dev.properties
+│       ├── application-dev.properties
+│       ├── application-prod.properties
+│       └── banner.txt
 ```
 
 ## 🧪 Testes

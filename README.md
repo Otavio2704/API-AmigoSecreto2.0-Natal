@@ -86,8 +86,6 @@ A API Amigo Secreto 2.0 é uma solução backend robusta que permite a criação
 ### Ferramentas
 - **Lombok** - Redução de código boilerplate
 - **Maven** - Gerenciamento de dependências
-- **JUnit 5** - Testes unitários
-- **Mockito** - Mocks para testes
 
 ## 📦 Pré-requisitos
 

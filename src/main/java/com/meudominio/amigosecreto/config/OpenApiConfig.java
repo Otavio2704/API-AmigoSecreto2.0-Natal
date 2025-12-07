@@ -14,13 +14,13 @@ import org.springframework.context.annotation.Configuration;
 @OpenAPIDefinition(
     info = @Info(
         title = "API Amigo Secreto 2.0",
-        version = "2.0.0",
+        version = "1.0.0",
         description = "API REST para gerenciamento de sorteios de amigo secreto com autenticação JWT, " +
                       "gerenciamento de grupos, algoritmo de sorteio inteligente e sistema de mensagens anônimas.",
         contact = @Contact(
-            name = "Equipe Amigo Secreto",
+            name = "Otávio Guedes",
             email = "contato@amigosecreto.com",
-            url = "https://github.com/seu-usuario/amigo-secreto-api"
+            url = "https://github.com/Otavio2704/API-AmigoSecreto2.0-Natal"
         ),
         license = @License(
             name = "MIT License",
@@ -48,3 +48,4 @@ import org.springframework.context.annotation.Configuration;
 )
 public class OpenApiConfig {
 }
+

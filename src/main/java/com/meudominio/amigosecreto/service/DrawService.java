@@ -14,12 +14,12 @@ import com.meudominio.amigosecreto.repository.GroupMemberRepository;
 import com.meudominio.amigosecreto.repository.GroupRepository;
 import com.meudominio.amigosecreto.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Serviço de gerenciamento de sorteios
@@ -31,33 +31,76 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DrawService {
 
+    // Constantes
+    private static final String GROUP_NOT_FOUND = "Grupo não encontrado";
+    private static final String USER_NOT_FOUND = "Usuário não encontrado";
+    private static final String DRAW_ALREADY_EXISTS = 
+        "Já existe um sorteio para este grupo. Delete o sorteio atual primeiro.";
+    private static final String UNAUTHORIZED_ADMIN = 
+        "Apenas o administrador pode executar o sorteio";
+    private static final String UNAUTHORIZED_RESET = 
+        "Apenas o administrador pode resetar o sorteio";
+    private static final String UNAUTHORIZED_VIEW_ALL = 
+        "Apenas o administrador pode ver todos os sorteios";
+    private static final String DRAW_NOT_FOUND = "Sorteio ainda não foi realizado";
+    private static final String NOT_MEMBER = "Você não é membro deste grupo";
+    
+    private static final int MAX_ATTEMPTS = 1000;
+    private static final int MIN_PARTICIPANTS = 3;
+    private static final Random RANDOM = new Random();
+
+    // Repositories
     private final DrawRepository drawRepository;
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final BlockedUserRepository blockedUserRepository;
 
-    private static final int MAX_ATTEMPTS = 1000;
-    private static final int MIN_PARTICIPANTS = 3;
-
+    /**
+     * Executa o sorteio para um grupo
+     */
     @Transactional
     public List<DrawResponse> executeDraw(Long groupId, String adminUsername) {
         log.info("Iniciando sorteio para grupo ID: {} por usuário: {}", groupId, adminUsername);
         
+        Group group = findAndValidateGroup(groupId);
+        User admin = findAndValidateAdmin(adminUsername, group);
+        
+        DrawContext context = prepareDrawContext(group);
+        List<Draw> draws = executeDrawAlgorithm(context);
+        
+        return saveAndConvertDraws(draws);
+    }
+
+    /**
+     * Busca e valida o grupo
+     */
+    private Group findAndValidateGroup(Long groupId) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
-
-        User admin = userRepository.findByUsername(adminUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        validateAdminPermissions(group, admin);
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         if (drawRepository.existsByGroup(group)) {
-            throw new BusinessException(
-                "Já existe um sorteio para este grupo. Delete o sorteio atual primeiro."
-            );
+            throw new BusinessException(DRAW_ALREADY_EXISTS);
         }
 
+        return group;
+    }
+
+    /**
+     * Busca e valida o administrador
+     */
+    private User findAndValidateAdmin(String username, Group group) {
+        User admin = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+
+        validateAdminPermissions(group, admin);
+        return admin;
+    }
+
+    /**
+     * Prepara o contexto do sorteio
+     */
+    private DrawContext prepareDrawContext(Group group) {
         List<User> members = getGroupMembers(group);
         validateMinimumParticipants(members);
         Map<Long, Set<Long>> blockMap = buildBlockMap(group);
@@ -65,52 +108,21 @@ public class DrawService {
         log.info("Sorteio: {} participantes, {} bloqueios", 
                  members.size(), countTotalBlocks(blockMap));
 
-        List<Draw> draws = performCyclicPermutationDraw(group, members, blockMap);
-        drawRepository.saveAll(draws);
-
-        log.info("✅ Sorteio concluído - {} pares gerados", draws.size());
-
-        return draws.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return new DrawContext(group, members, blockMap);
     }
 
     /**
-     * Algoritmo de Permutação Cíclica
-     * 1. Embaralha participantes (Fisher-Yates)
-     * 2. Cria ciclo onde cada um tira o próximo
-     * 3. Valida bloqueios
-     * 4. Se inválido, tenta resolver com swaps
+     * Executa o algoritmo de sorteio
      */
-    private List<Draw> performCyclicPermutationDraw(Group group, List<User> members, 
-                                                     Map<Long, Set<Long>> blockMap) {
-        int n = members.size();
+    private List<Draw> executeDrawAlgorithm(DrawContext context) {
         int attempt = 0;
 
         while (attempt < MAX_ATTEMPTS) {
             attempt++;
             
-            // Embaralha uniformemente
-            List<User> shuffled = new ArrayList<>(members);
-            fisherYatesShuffle(shuffled);
-
-            // Cria permutação cíclica e valida
-            List<Draw> draws = new ArrayList<>();
-            boolean isValid = true;
-
-            for (int i = 0; i < n; i++) {
-                User giver = shuffled.get(i);
-                User receiver = shuffled.get((i + 1) % n);
-
-                if (isBlocked(giver, receiver, blockMap)) {
-                    isValid = false;
-                    break;
-                }
-
-                draws.add(buildDraw(group, giver, receiver));
-            }
-
-            if (isValid) {
+            List<Draw> draws = tryDrawWithCyclicPermutation(context);
+            
+            if (draws != null) {
                 log.info("✓ Configuração válida na tentativa #{}", attempt);
                 return draws;
             }
@@ -118,7 +130,7 @@ public class DrawService {
             // Tenta resolver com swaps a cada 100 tentativas
             if (attempt % 100 == 0) {
                 log.debug("Tentando resolver com trocas (tentativa {})", attempt);
-                List<Draw> resolvedDraws = tryResolveWithSwaps(group, shuffled, blockMap);
+                List<Draw> resolvedDraws = tryResolveWithSwaps(context);
                 
                 if (resolvedDraws != null) {
                     log.info("✓ Resolvido com trocas na tentativa #{}", attempt);
@@ -136,20 +148,59 @@ public class DrawService {
         );
     }
 
-    // Embaralhamento Fisher-Yates - O(n)
+    /**
+     * Tenta criar sorteio com permutação cíclica
+     */
+    private List<Draw> tryDrawWithCyclicPermutation(DrawContext context) {
+        int n = context.getMembers().size();
+        
+        List<User> shuffled = new ArrayList<>(context.getMembers());
+        fisherYatesShuffle(shuffled);
+
+        List<Draw> draws = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            User giver = shuffled.get(i);
+            User receiver = shuffled.get((i + 1) % n);
+
+            if (isBlocked(giver, receiver, context.getBlockMap())) {
+                return Collections.emptyList();
+            }
+
+            draws.add(buildDraw(context.getGroup(), giver, receiver));
+        }
+
+        return draws;
+    }
+
+    /**
+     * Salva e converte draws para resposta
+     */
+    private List<DrawResponse> saveAndConvertDraws(List<Draw> draws) {
+        drawRepository.saveAll(draws);
+        log.info("Sorteio concluído - {} pares gerados", draws.size());
+
+        return draws.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    /**
+     * Embaralhamento Fisher-Yates - O(n)
+     */
     private void fisherYatesShuffle(List<User> list) {
-        Random random = new Random();
         for (int i = list.size() - 1; i > 0; i--) {
-            int j = random.nextInt(i + 1);
+            int j = RANDOM.nextInt(i + 1);
             Collections.swap(list, i, j);
         }
     }
 
-    // Tenta resolver bloqueios com trocas de posições - O(n²)
-    private List<Draw> tryResolveWithSwaps(Group group, List<User> members, 
-                                            Map<Long, Set<Long>> blockMap) {
-        int n = members.size();
-        List<User> current = new ArrayList<>(members);
+    /**
+     * Tenta resolver bloqueios com trocas de posições - O(n²)
+     */
+    private List<Draw> tryResolveWithSwaps(DrawContext context) {
+        int n = context.getMembers().size();
+        List<User> current = new ArrayList<>(context.getMembers());
         
         int maxSwaps = n * n;
         for (int swaps = 0; swaps < maxSwaps; swaps++) {
@@ -159,25 +210,8 @@ public class DrawService {
                 User giver = current.get(i);
                 User receiver = current.get((i + 1) % n);
                 
-                if (isBlocked(giver, receiver, blockMap)) {
-                    boolean resolved = false;
-                    
-                    // Tenta trocar com outras posições
-                    for (int j = 0; j < n; j++) {
-                        if (i != j && (i + 1) % n != j) {
-                            Collections.swap(current, (i + 1) % n, j);
-                            
-                            User newReceiver = current.get((i + 1) % n);
-                            if (!isBlocked(giver, newReceiver, blockMap)) {
-                                if (isSwapValid(current, blockMap)) {
-                                    resolved = true;
-                                    break;
-                                }
-                            }
-                            
-                            Collections.swap(current, (i + 1) % n, j); // Desfaz
-                        }
-                    }
+                if (isBlocked(giver, receiver, context.getBlockMap())) {
+                    boolean resolved = trySwapToResolveBlock(current, i, n, context.getBlockMap());
                     
                     if (!resolved) {
                         allValid = false;
@@ -187,14 +221,39 @@ public class DrawService {
             }
             
             if (allValid) {
-                return buildDrawsFromList(group, current);
+                return buildDrawsFromList(context.getGroup(), current);
             }
         }
         
-        return null;
+        return Collections.emptyList();
     }
 
-    // Valida se configuração não tem bloqueios
+    /**
+     * Tenta trocar posições para resolver bloqueio
+     */
+    private boolean trySwapToResolveBlock(List<User> current, int i, int n, 
+                                          Map<Long, Set<Long>> blockMap) {
+        User giver = current.get(i);
+        
+        for (int j = 0; j < n; j++) {
+            if (i != j && (i + 1) % n != j) {
+                Collections.swap(current, (i + 1) % n, j);
+                
+                User newReceiver = current.get((i + 1) % n);
+                if (!isBlocked(giver, newReceiver, blockMap) && isSwapValid(current, blockMap)) {
+                    return true;
+                }
+                
+                Collections.swap(current, (i + 1) % n, j); // Desfaz
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Valida se configuração não tem bloqueios
+     */
     private boolean isSwapValid(List<User> members, Map<Long, Set<Long>> blockMap) {
         int n = members.size();
         for (int i = 0; i < n; i++) {
@@ -207,7 +266,9 @@ public class DrawService {
         return true;
     }
 
-    // Constrói draws a partir da lista ordenada
+    /**
+     * Constrói draws a partir da lista ordenada
+     */
     private List<Draw> buildDrawsFromList(Group group, List<User> members) {
         List<Draw> draws = new ArrayList<>();
         int n = members.size();
@@ -219,7 +280,9 @@ public class DrawService {
         return draws;
     }
 
-    // Constrói mapa de bloqueios para acesso O(1)
+    /**
+     * Constrói mapa de bloqueios para acesso O(1)
+     */
     private Map<Long, Set<Long>> buildBlockMap(Group group) {
         List<BlockedUser> blockedUsers = blockedUserRepository.findByGroup(group);
         Map<Long, Set<Long>> blockMap = new HashMap<>();
@@ -232,20 +295,26 @@ public class DrawService {
         return blockMap;
     }
 
-    // Verifica bloqueio - O(1)
+    /**
+     * Verifica bloqueio - O(1)
+     */
     private boolean isBlocked(User giver, User receiver, Map<Long, Set<Long>> blockMap) {
         Set<Long> blockedIds = blockMap.get(giver.getId());
         return blockedIds != null && blockedIds.contains(receiver.getId());
     }
 
+    /**
+     * Valida permissões de administrador
+     */
     private void validateAdminPermissions(Group group, User admin) {
         if (!group.getAdmin().getId().equals(admin.getId())) {
-            throw new UnauthorizedException(
-                "Apenas o administrador pode executar o sorteio"
-            );
+            throw new UnauthorizedException(UNAUTHORIZED_ADMIN);
         }
     }
 
+    /**
+     * Valida número mínimo de participantes
+     */
     private void validateMinimumParticipants(List<User> members) {
         if (members.size() < MIN_PARTICIPANTS) {
             throw new BusinessException(
@@ -257,18 +326,27 @@ public class DrawService {
         }
     }
 
+    /**
+     * Obtém membros do grupo
+     */
     private List<User> getGroupMembers(Group group) {
         return groupMemberRepository.findByGroup(group).stream()
                 .map(gm -> gm.getUser())
-                .collect(Collectors.toList());
+                .toList();
     }
 
+    /**
+     * Conta total de bloqueios
+     */
     private int countTotalBlocks(Map<Long, Set<Long>> blockMap) {
         return blockMap.values().stream()
                 .mapToInt(Set::size)
                 .sum();
     }
 
+    /**
+     * Constrói objeto Draw
+     */
     private Draw buildDraw(Group group, User giver, User receiver) {
         return Draw.builder()
                 .group(group)
@@ -277,61 +355,67 @@ public class DrawService {
                 .build();
     }
 
+    /**
+     * Retorna o resultado do sorteio do usuário atual
+     */
     public DrawResponse getMyDraw(Long groupId, String username) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
-            throw new UnauthorizedException("Você não é membro deste grupo");
+            throw new UnauthorizedException(NOT_MEMBER);
         }
 
         Draw draw = drawRepository.findByGroupAndGiver(group, user)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "Sorteio ainda não foi realizado"
-                ));
+                .orElseThrow(() -> new ResourceNotFoundException(DRAW_NOT_FOUND));
 
         return mapToResponse(draw);
     }
 
+    /**
+     * Retorna todos os resultados do sorteio (apenas admin)
+     */
     public List<DrawResponse> getAllDraws(Long groupId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User admin = userRepository.findByUsername(adminUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         if (!group.getAdmin().getId().equals(admin.getId())) {
-            throw new UnauthorizedException(
-                "Apenas o administrador pode ver todos os sorteios"
-            );
+            throw new UnauthorizedException(UNAUTHORIZED_VIEW_ALL);
         }
 
         return drawRepository.findByGroup(group).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
+    /**
+     * Reseta o sorteio do grupo
+     */
     @Transactional
     public void resetDraw(Long groupId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User admin = userRepository.findByUsername(adminUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         if (!group.getAdmin().getId().equals(admin.getId())) {
-            throw new UnauthorizedException(
-                "Apenas o administrador pode resetar o sorteio"
-            );
+            throw new UnauthorizedException(UNAUTHORIZED_RESET);
         }
 
         drawRepository.deleteByGroup(group);
         log.info("Sorteio resetado para grupo ID: {} por usuário: {}", groupId, adminUsername);
     }
 
+    /**
+     * Mapeia Draw para DrawResponse
+     */
     private DrawResponse mapToResponse(Draw draw) {
         return DrawResponse.builder()
                 .id(draw.getId())
@@ -340,5 +424,15 @@ public class DrawService {
                 .giverUsername(draw.getGiver().getUsername())
                 .receiverUsername(draw.getReceiver().getUsername())
                 .build();
+    }
+
+    /**
+     * Classe interna para contexto do sorteio
+     */
+    @Value
+    private static class DrawContext {
+        Group group;
+        List<User> members;
+        Map<Long, Set<Long>> blockMap;
     }
 }

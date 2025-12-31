@@ -64,7 +64,7 @@ public class DrawService {
         log.info("Iniciando sorteio para grupo ID: {} por usuário: {}", groupId, adminUsername);
         
         Group group = findAndValidateGroup(groupId);
-        User admin = findAndValidateAdmin(adminUsername, group);
+        findAndValidateAdmin(adminUsername, group);
         
         DrawContext context = prepareDrawContext(group);
         List<Draw> draws = executeDrawAlgorithm(context);

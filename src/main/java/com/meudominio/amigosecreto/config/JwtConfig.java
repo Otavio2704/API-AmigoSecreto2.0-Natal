@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class JwtConfig {
 
-    private String secretKey = "your-256-bit-secret-key-change-this-in-production-environment";
+    private String secretKey = "Sua-Chave-Aqui";
     private long expiration = 86400000; // 24 horas em milissegundos
     private long refreshExpiration = 604800000; // 7 dias em milissegundos
     private String tokenPrefix = "Bearer ";

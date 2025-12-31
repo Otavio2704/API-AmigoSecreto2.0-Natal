@@ -112,7 +112,7 @@ public class MessageService {
                 .id(message.getId())
                 .groupId(message.getGroup().getId())
                 .groupName(message.getGroup().getName())
-                .senderUsername(message.getIsAnonymous() ? "Anônimo" : message.getSender().getUsername())
+                .senderUsername(Boolean.TRUE.equals(message.getIsAnonymous()) ? "Anônimo" : message.getSender().getUsername())
                 .content(message.getContent())
                 .isAnonymous(message.getIsAnonymous())
                 .timestamp(message.getTimestamp())

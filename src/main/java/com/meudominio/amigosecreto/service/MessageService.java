@@ -17,11 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MessageService {
+
+    private static final String USER_NOT_FOUND = "Usuário não encontrado";
+    private static final String GROUP_NOT_FOUND = "Grupo não encontrado";
 
     private final MessageRepository messageRepository;
     private final GroupRepository groupRepository;
@@ -31,10 +33,10 @@ public class MessageService {
     @Transactional
     public MessageResponse sendMessage(SendMessageRequest request, String username) {
         Group group = groupRepository.findById(request.getGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User sender = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se é membro
         if (!groupMemberRepository.existsByGroupAndUser(group, sender)) {
@@ -45,7 +47,7 @@ public class MessageService {
                 .group(group)
                 .sender(sender)
                 .content(request.getContent())
-                .isAnonymous(request.getIsAnonymous() != null ? request.getIsAnonymous() : true)
+                .isAnonymous(request.getIsAnonymous() == null || request.getIsAnonymous())
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -56,10 +58,10 @@ public class MessageService {
 
     public List<MessageResponse> getGroupMessages(Long groupId, String username) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se é membro
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
@@ -68,7 +70,7 @@ public class MessageService {
 
         return messageRepository.findByGroupOrderByTimestampDesc(group).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public MessageResponse getMessageById(Long id, String username) {
@@ -76,7 +78,7 @@ public class MessageService {
                 .orElseThrow(() -> new ResourceNotFoundException("Mensagem não encontrada"));
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se é membro do grupo
         if (!groupMemberRepository.existsByGroupAndUser(message.getGroup(), user)) {
@@ -92,7 +94,7 @@ public class MessageService {
                 .orElseThrow(() -> new ResourceNotFoundException("Mensagem não encontrada"));
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se é o remetente ou admin do grupo
         boolean isOwner = message.getSender().getId().equals(user.getId());

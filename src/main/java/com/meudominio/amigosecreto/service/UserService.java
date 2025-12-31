@@ -9,36 +9,38 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
+    private static final String USER_NOT_FOUND = "Usuário não encontrado";
+    private static final String GROUP_NOT_FOUND = "Grupo não encontrado";
+
     private final UserRepository userRepository;
 
     public UserResponse getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
         return mapToResponse(user);
     }
 
     public UserResponse getUserById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
         return mapToResponse(user);
     }
 
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Usuário não encontrado");
+            throw new ResourceNotFoundException(USER_NOT_FOUND);
         }
         userRepository.deleteById(id);
     }

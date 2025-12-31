@@ -16,14 +16,15 @@ import com.meudominio.amigosecreto.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class GroupService {
+
+    private static final String USER_NOT_FOUND = "Usuário não encontrado";
+    private static final String GROUP_NOT_FOUND = "Grupo não encontrado";
 
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
@@ -33,7 +34,7 @@ public class GroupService {
     @Transactional
     public GroupResponse createGroup(CreateGroupRequest request, String username) {
         User admin = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Criar grupo
         Group group = Group.builder()
@@ -60,20 +61,20 @@ public class GroupService {
 
     public List<GroupResponse> getUserGroups(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         return groupMemberRepository.findByUser(user).stream()
                 .map(GroupMember::getGroup)
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public GroupResponse getGroupById(Long id, String username) {
         Group group = groupRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se usuário é membro
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
@@ -86,10 +87,10 @@ public class GroupService {
     @Transactional
     public void addMember(Long groupId, Long userId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User admin = userRepository.findByUsername(adminUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se é admin
         if (!group.getAdmin().getId().equals(admin.getId())) {
@@ -97,7 +98,7 @@ public class GroupService {
         }
 
         User newMember = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se já é membro
         if (groupMemberRepository.existsByGroupAndUser(group, newMember)) {
@@ -116,10 +117,10 @@ public class GroupService {
     @Transactional
     public void removeMember(Long groupId, Long userId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User admin = userRepository.findByUsername(adminUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se é admin
         if (!group.getAdmin().getId().equals(admin.getId())) {
@@ -127,7 +128,7 @@ public class GroupService {
         }
 
         User member = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Não pode remover o admin
         if (member.getId().equals(admin.getId())) {
@@ -143,10 +144,10 @@ public class GroupService {
     @Transactional
     public void deleteGroup(Long groupId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User admin = userRepository.findByUsername(adminUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         // Verificar se é admin
         if (!group.getAdmin().getId().equals(admin.getId())) {
@@ -159,10 +160,10 @@ public class GroupService {
     @Transactional
     public void blockUser(Long groupId, String blockerUsername, Long blockedUserId) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Grupo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
 
         User blocker = userRepository.findByUsername(blockerUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         User blocked = userRepository.findById(blockedUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário bloqueado não encontrado"));
@@ -193,7 +194,7 @@ public class GroupService {
     private GroupResponse mapToResponse(Group group) {
         List<String> memberNames = groupMemberRepository.findByGroup(group).stream()
                 .map(gm -> gm.getUser().getUsername())
-                .collect(Collectors.toList());
+                .toList();
 
         return GroupResponse.builder()
                 .id(group.getId())

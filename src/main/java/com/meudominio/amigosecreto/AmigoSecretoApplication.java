@@ -10,23 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-/**
- * Classe principal da aplicação Amigo Secreto API 2.0
- * 
- * Solução backend moderna para gerenciar sorteios de amigo secreto
- * de forma digital e automatizada.
- * 
- * Funcionalidades:
- * - Gestão de usuários com diferentes níveis de acesso
- * - Gerenciamento de grupos
- * - Sorteio inteligente (evita auto-sorteios e respeita bloqueios)
- * - Mensagens anônimas entre participantes
- * - Segurança com JWT
- * 
- * @author Otávio2704
- * @version 1.0.0
- * @since 2025
- */
+
 @SpringBootApplication
 @EnableJpaRepositories
 @Slf4j
@@ -85,5 +69,6 @@ public class AmigoSecretoApplication {
         );
     }
 }
+
 
 

@@ -14,10 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.Collections;
 
-/**
- * Implementação customizada do UserDetailsService do Spring Security
- * Carrega os dados do usuário do banco de dados
- */
+
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
@@ -48,3 +45,4 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         );
     }
 }
+

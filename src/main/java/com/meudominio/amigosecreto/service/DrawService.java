@@ -21,11 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
-/**
- * Serviço de gerenciamento de sorteios
- * Algoritmo: Permutação Cíclica com validação de bloqueios
- * Complexidade: O(n) caso médio, O(kn²) pior caso
- */
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -436,3 +432,4 @@ public class DrawService {
         Map<Long, Set<Long>> blockMap;
     }
 }
+

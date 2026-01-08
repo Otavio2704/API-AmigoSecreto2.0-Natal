@@ -11,9 +11,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-/**
- * Componente responsável por gerar e validar tokens JWT
- */
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -96,3 +94,4 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
+

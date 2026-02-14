@@ -2,9 +2,12 @@
 
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![JUnit 5](https://img.shields.io/badge/JUnit-5-blue.svg)](https://junit.org/junit5/)
+[![Mockito](https://img.shields.io/badge/Mockito-5-green.svg)](https://site.mockito.org/)
+[![JaCoCo](https://img.shields.io/badge/Coverage-JaCoCo-red.svg)](https://www.jacoco.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-API REST moderna e completa para gerenciar sorteios de amigo secreto de forma digital e automatizada. Desenvolvida com Spring Boot, oferece recursos avançados de gerenciamento de grupos, algoritmo de sorteio inteligente e sistema de mensagens anônimas.
+API REST moderna e completa para gerenciar sorteios de amigo secreto de forma digital e automatizada. Desenvolvida com Spring Boot, oferece recursos avançados de gerenciamento de grupos, algoritmo de sorteio inteligente com suporte a bloqueios, sistema de mensagens anônimas e cobertura de testes unitários com JUnit 5 e Mockito.
 
 ## 📋 Índice
 
@@ -28,10 +31,11 @@ A API Amigo Secreto 2.0 é uma solução backend robusta que permite a criação
 
 ### Por que usar esta API?
 
-- ✅ **Segurança**: Autenticação JWT e criptografia de senhas
+- ✅ **Segurança**: Autenticação JWT e criptografia de senhas com BCrypt
 - ✅ **Flexibilidade**: Sistema de bloqueios para evitar combinações indesejadas
 - ✅ **Privacidade**: Mensagens anônimas entre participantes
-- ✅ **Inteligência**: Algoritmo de sorteio que respeita restrições e bloqueios
+- ✅ **Inteligência**: Algoritmo de sorteio com Fisher-Yates shuffle e resolução de bloqueios via permutação cíclica
+- ✅ **Qualidade**: Suite de testes unitários com 70+ casos cobrindo happy paths, sad paths e edge cases
 - ✅ **Documentação**: Swagger/OpenAPI integrado para fácil utilização
 
 ## ⚡ Funcionalidades
@@ -49,16 +53,17 @@ A API Amigo Secreto 2.0 é uma solução backend robusta que permite a criação
 - Visualização de grupos do usuário
 
 ### Sistema de Sorteio
-- Algoritmo inteligente que evita auto-sorteios
+- Algoritmo inteligente com embaralhamento Fisher-Yates e permutação cíclica
 - Sistema de bloqueios (usuário pode bloquear quem não quer tirar)
-- Sorteio justo e aleatório
+- Resolução automática de conflitos de bloqueio via swap de posições
+- Mínimo de 3 participantes obrigatório para executar o sorteio
 - Possibilidade de resetar e refazer o sorteio
 - Visualização individual do resultado (apenas o usuário vê quem tirou)
 
 ### Mensagens Anônimas
 - Envio de mensagens para o grupo
 - Opção de mensagem anônima ou identificada
-- Histórico de mensagens do grupo
+- Histórico de mensagens do grupo ordenado por data
 - Apenas remetente ou admin pode deletar mensagens
 
 ## 🚀 Tecnologias Utilizadas
@@ -82,6 +87,14 @@ A API Amigo Secreto 2.0 é uma solução backend robusta que permite a criação
 ### Documentação
 - **SpringDoc OpenAPI 3** - Documentação automática da API
 - **Swagger UI** - Interface visual para testar endpoints
+
+### Testes
+- **JUnit 5** - Framework de testes unitários
+- **Mockito** - Mock de dependências
+- **AssertJ** - Assertions fluentes
+- **Spring Security Test** - Testes de segurança
+- **REST Assured** - Testes de integração de API
+- **JaCoCo** - Cobertura de código
 
 ### Ferramentas
 - **Lombok** - Redução de código boilerplate
@@ -246,11 +259,11 @@ src/
 │   │   ├── dto/                 # Data Transfer Objects
 │   │   │   ├── request/         # DTOs de requisição
 │   │   │   └── response/        # DTOs de resposta
-│   │   ├── exception/           # Exceções customizadas
+│   │   ├── exception/           # Exceções customizadas e handler global
 │   │   ├── model/               # Entidades JPA
 │   │   │   └── enums/           # Enumerações
 │   │   ├── repository/          # Repositórios Spring Data
-│   │   ├── security/            # Componentes de segurança
+│   │   ├── security/            # Componentes de segurança (JWT filter, UserDetails)
 │   │   ├── service/             # Lógica de negócio
 │   │   └── AmigoSecretoApplication.java
 │   └── resources/
@@ -258,14 +271,41 @@ src/
 │       ├── application-dev.properties
 │       ├── application-prod.properties
 │       └── banner.txt
+└── test/
+    └── java/com/meudominio/amigosecreto/
+        ├── exception/           # Testes do GlobalExceptionHandler
+        ├── security/            # Testes do JwtTokenProvider
+        └── service/             # Testes de AuthService, GroupService, DrawService,
+                                 #   MessageService e UserService
 ```
 
 ## 🧪 Testes
+
+O projeto conta com uma suíte completa de **70+ testes unitários** cobrindo os principais fluxos da aplicação.
+
+### Cobertura por Classe
+
+| Classe | Testes | Cenários cobertos |
+|--------|--------|-------------------|
+| `AuthService` | 8 | Registro, login, refresh token (sucesso e falhas) |
+| `GroupService` | 14 | CRUD de grupos, membros e bloqueios |
+| `DrawService` | 12 | Sorteio, consulta de resultado, reset e validações |
+| `MessageService` | 11 | Envio, leitura e exclusão de mensagens |
+| `UserService` | 7 | Busca, listagem e exclusão de usuários |
+| `JwtTokenProvider` | 8 | Geração, validação e extração de tokens |
+| `GlobalExceptionHandler` | 10 | Mapeamento de exceções para status HTTP |
 
 ### Executar todos os testes
 
 ```bash
 ./mvnw test
+```
+
+### Executar uma classe específica
+
+```bash
+./mvnw test -Dtest=AuthServiceTest
+./mvnw test -Dtest=DrawServiceTest
 ```
 
 ### Executar com cobertura de código
@@ -281,6 +321,15 @@ O relatório será gerado em: `target/site/jacoco/index.html`
 ```bash
 ./mvnw verify
 ```
+
+### Padrões utilizados nos testes
+
+- `@ExtendWith(MockitoExtension.class)` — sem contexto Spring, execução rápida
+- `@Mock` para dependências, `@InjectMocks` para a classe testada
+- `@BeforeEach` para setup de dados comuns
+- AssertJ para assertions fluentes
+- Padrão AAA (Arrange-Act-Assert)
+- `verify(..., never())` para garantir que operações de escrita não ocorrem em caminhos de erro
 
 ## 🤝 Contribuindo
 
@@ -316,4 +365,4 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ⭐ Se este projeto foi útil para você, considere dar uma estrela no GitHub!
 
-**Feito com ❤️ e ☕ em Suzano-SP, Brasil**
+**Feito com ❤️ e ☕**

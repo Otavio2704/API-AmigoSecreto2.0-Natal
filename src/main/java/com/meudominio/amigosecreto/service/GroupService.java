@@ -36,7 +36,6 @@ public class GroupService {
         User admin = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
-        // Criar grupo
         Group group = Group.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -47,7 +46,6 @@ public class GroupService {
 
         groupRepository.save(group);
 
-        // Adicionar admin como membro
         GroupMember adminMember = GroupMember.builder()
                 .group(group)
                 .user(admin)
@@ -76,7 +74,6 @@ public class GroupService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
-        // Verificar se usuário é membro
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
             throw new UnauthorizedException("Você não é membro deste grupo");
         }
@@ -92,7 +89,6 @@ public class GroupService {
         User admin = userRepository.findByUsername(adminUsername)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
-        // Verificar se é admin
         if (!group.getAdmin().getId().equals(admin.getId())) {
             throw new UnauthorizedException("Apenas o administrador pode adicionar membros");
         }
@@ -100,7 +96,6 @@ public class GroupService {
         User newMember = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
-        // Verificar se já é membro
         if (groupMemberRepository.existsByGroupAndUser(group, newMember)) {
             throw new BusinessException("Usuário já é membro do grupo");
         }
@@ -122,7 +117,6 @@ public class GroupService {
         User admin = userRepository.findByUsername(adminUsername)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
-        // Verificar se é admin
         if (!group.getAdmin().getId().equals(admin.getId())) {
             throw new UnauthorizedException("Apenas o administrador pode remover membros");
         }
@@ -130,7 +124,6 @@ public class GroupService {
         User member = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
-        // Não pode remover o admin
         if (member.getId().equals(admin.getId())) {
             throw new BusinessException("Não é possível remover o administrador do grupo");
         }
@@ -149,7 +142,6 @@ public class GroupService {
         User admin = userRepository.findByUsername(adminUsername)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
-        // Verificar se é admin
         if (!group.getAdmin().getId().equals(admin.getId())) {
             throw new UnauthorizedException("Apenas o administrador pode deletar o grupo");
         }
@@ -168,7 +160,11 @@ public class GroupService {
         User blocked = userRepository.findById(blockedUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário bloqueado não encontrado"));
 
-        // Verificar se ambos são membros
+        // Impede auto-bloqueio
+        if (blocker.getId().equals(blocked.getId())) {
+            throw new BusinessException("Você não pode bloquear a si mesmo");
+        }
+
         if (!groupMemberRepository.existsByGroupAndUser(group, blocker)) {
             throw new UnauthorizedException("Você não é membro deste grupo");
         }
@@ -177,7 +173,6 @@ public class GroupService {
             throw new BusinessException("Usuário a bloquear não é membro do grupo");
         }
 
-        // Verificar se já existe bloqueio
         if (blockedUserRepository.existsByGroupAndBlockerAndBlocked(group, blocker, blocked)) {
             throw new BusinessException("Bloqueio já existe");
         }

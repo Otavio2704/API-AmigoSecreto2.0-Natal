@@ -13,8 +13,9 @@ import com.meudominio.amigosecreto.repository.DrawRepository;
 import com.meudominio.amigosecreto.repository.GroupMemberRepository;
 import com.meudominio.amigosecreto.repository.GroupRepository;
 import com.meudominio.amigosecreto.repository.UserRepository;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +63,7 @@ public class DrawService {
         return saveAndConvertDraws(draws);
     }
 
-    
+
     private Group findAndValidateGroup(Long groupId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
@@ -74,7 +75,7 @@ public class DrawService {
         return group;
     }
 
-    
+
     private User findAndValidateAdmin(String username, Group group) {
         User admin = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
@@ -83,7 +84,7 @@ public class DrawService {
         return admin;
     }
 
-    
+
     private DrawContext prepareDrawContext(Group group) {
         List<User> members = getGroupMembers(group);
         validateMinimumParticipants(members);
@@ -95,7 +96,7 @@ public class DrawService {
         return new DrawContext(group, members, blockMap);
     }
 
-    
+
     private List<Draw> executeDrawAlgorithm(DrawContext context) {
         int attempt = 0;
 
@@ -130,7 +131,7 @@ public class DrawService {
         );
     }
 
-    
+
     private List<Draw> tryDrawWithCyclicPermutation(DrawContext context) {
         int n = context.getMembers().size();
 
@@ -153,7 +154,7 @@ public class DrawService {
         return draws;
     }
 
-    
+
     private List<DrawResponse> saveAndConvertDraws(List<Draw> draws) {
         drawRepository.saveAll(draws);
         log.info("Sorteio concluído - {} pares gerados", draws.size());
@@ -163,7 +164,7 @@ public class DrawService {
                 .toList();
     }
 
-    
+
     private void fisherYatesShuffle(List<User> list) {
         for (int i = list.size() - 1; i > 0; i--) {
             int j = RANDOM.nextInt(i + 1);
@@ -171,7 +172,7 @@ public class DrawService {
         }
     }
 
-    
+
     private List<Draw> tryResolveWithSwaps(DrawContext context) {
         int n = context.getMembers().size();
         List<User> current = new ArrayList<>(context.getMembers());
@@ -202,7 +203,7 @@ public class DrawService {
         return Collections.emptyList();
     }
 
-    
+
     private boolean trySwapToResolveBlock(List<User> current, int i, int n,
                                           Map<Long, Set<Long>> blockMap) {
         User giver = current.get(i);
@@ -216,14 +217,14 @@ public class DrawService {
                     return true;
                 }
 
-                Collections.swap(current, (i + 1) % n, j); // Desfaz
+                Collections.swap(current, (i + 1) % n, j);
             }
         }
 
         return false;
     }
 
-    
+
     private boolean isSwapValid(List<User> members, Map<Long, Set<Long>> blockMap) {
         int n = members.size();
         for (int i = 0; i < n; i++) {
@@ -236,7 +237,7 @@ public class DrawService {
         return true;
     }
 
-    
+
     private List<Draw> buildDrawsFromList(Group group, List<User> members) {
         List<Draw> draws = new ArrayList<>();
         int n = members.size();
@@ -248,7 +249,7 @@ public class DrawService {
         return draws;
     }
 
-    
+
     private Map<Long, Set<Long>> buildBlockMap(Group group) {
         List<BlockedUser> blockedUsers = blockedUserRepository.findByGroup(group);
         Map<Long, Set<Long>> blockMap = new HashMap<>();
@@ -261,20 +262,20 @@ public class DrawService {
         return blockMap;
     }
 
-    
+
     private boolean isBlocked(User giver, User receiver, Map<Long, Set<Long>> blockMap) {
         Set<Long> blockedIds = blockMap.get(giver.getId());
         return blockedIds != null && blockedIds.contains(receiver.getId());
     }
 
-    
+
     private void validateAdminPermissions(Group group, User admin) {
         if (!group.getAdmin().getId().equals(admin.getId())) {
             throw new UnauthorizedException(UNAUTHORIZED_ADMIN);
         }
     }
 
-    
+
     private void validateMinimumParticipants(List<User> members) {
         if (members.size() < MIN_PARTICIPANTS) {
             throw new BusinessException(
@@ -286,21 +287,21 @@ public class DrawService {
         }
     }
 
-    
+
     private List<User> getGroupMembers(Group group) {
         return groupMemberRepository.findByGroup(group).stream()
                 .map(gm -> gm.getUser())
                 .toList();
     }
 
-    
+
     private int countTotalBlocks(Map<Long, Set<Long>> blockMap) {
         return blockMap.values().stream()
                 .mapToInt(Set::size)
                 .sum();
     }
 
-    
+
     private Draw buildDraw(Group group, User giver, User receiver) {
         return Draw.builder()
                 .group(group)
@@ -309,7 +310,7 @@ public class DrawService {
                 .build();
     }
 
-    
+
     public DrawResponse getMyDraw(Long groupId, String username) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
@@ -327,7 +328,7 @@ public class DrawService {
         return mapToResponse(draw);
     }
 
-    
+
     public List<DrawResponse> getAllDraws(Long groupId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException(GROUP_NOT_FOUND));
@@ -344,7 +345,7 @@ public class DrawService {
                 .toList();
     }
 
-    
+
     @Transactional
     public void resetDraw(Long groupId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
@@ -361,7 +362,7 @@ public class DrawService {
         log.info("Sorteio resetado para grupo ID: {} por usuário: {}", groupId, adminUsername);
     }
 
-    
+
     private DrawResponse mapToResponse(Draw draw) {
         return DrawResponse.builder()
                 .id(draw.getId())
@@ -375,10 +376,11 @@ public class DrawService {
     /**
      * Classe interna para contexto do sorteio
      */
-    @Value
+    @Getter
+    @AllArgsConstructor
     private static class DrawContext {
-        Group group;
-        List<User> members;
-        Map<Long, Set<Long>> blockMap;
+        private final Group group;
+        private final List<User> members;
+        private final Map<Long, Set<Long>> blockMap;
     }
 }

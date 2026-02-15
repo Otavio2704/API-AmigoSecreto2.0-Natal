@@ -65,13 +65,13 @@ class DrawServiceTest {
                 .id(1L)
                 .name("Amigo Secreto 2025")
                 .admin(admin)
-                .drawDate(LocalDate.of(2025, 12, 20))
+                .drawDate(LocalDate.now().plusDays(30))
                 .createdAt(LocalDateTime.now())
                 .build();
     }
 
     // ========================
-    // EXECUTE DRAW
+    // REALIZAR SORTEIO
     // ========================
 
     @Test
@@ -128,14 +128,13 @@ class DrawServiceTest {
     void executeDraw_deveLancarExcecaoComMenosDeTresParticipantes() {
         List<GroupMember> members = List.of(
                 buildMember(admin),
-                buildMember(user1)  // apenas 2 membros
+                buildMember(user1)
         );
 
         when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
         when(drawRepository.existsByGroup(group)).thenReturn(false);
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
         when(groupMemberRepository.findByGroup(group)).thenReturn(members);
-        when(blockedUserRepository.findByGroup(group)).thenReturn(List.of());
 
         assertThatThrownBy(() -> drawService.executeDraw(1L, "admin"))
                 .isInstanceOf(BusinessException.class)
@@ -152,7 +151,7 @@ class DrawServiceTest {
     }
 
     // ========================
-    // GET MY DRAW
+    // PEGAR MEU SORTEIO
     // ========================
 
     @Test
@@ -201,7 +200,7 @@ class DrawServiceTest {
     }
 
     // ========================
-    // GET ALL DRAWS
+    // OBTER TODOS OS SORTEIOS
     // ========================
 
     @Test
@@ -230,7 +229,7 @@ class DrawServiceTest {
     }
 
     // ========================
-    // RESET DRAW
+    // REINICIAR SORTEIO
     // ========================
 
     @Test

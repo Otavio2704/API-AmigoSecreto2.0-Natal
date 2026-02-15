@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -83,7 +84,7 @@ class MessageServiceTest {
     }
 
     // ========================
-    // SEND MESSAGE
+    // ENVIAR MENSAGEM
     // ========================
 
     @Test
@@ -126,6 +127,33 @@ class MessageServiceTest {
     }
 
     @Test
+    @DisplayName("sendMessage - deve tratar isAnonymous null como anônimo (comportamento padrão)")
+    void sendMessage_deveTratarIsAnonymousNuloComoAnonimo() {
+        SendMessageRequest reqSemFlag = SendMessageRequest.builder()
+                .groupId(1L)
+                .content("Mensagem sem flag")
+                .isAnonymous(null)
+                .build();
+
+        Message msgAnonima = Message.builder()
+                .id(3L).group(group).sender(sender)
+                .content("Mensagem sem flag").isAnonymous(true)
+                .timestamp(LocalDateTime.now()).build();
+
+        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
+        when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
+        when(groupMemberRepository.existsByGroupAndUser(group, sender)).thenReturn(true);
+        when(messageRepository.save(any(Message.class))).thenReturn(msgAnonima);
+
+        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+
+        messageService.sendMessage(reqSemFlag, "sender");
+
+        verify(messageRepository).save(captor.capture());
+        assertThat(captor.getValue().getIsAnonymous()).isTrue();
+    }
+
+    @Test
     @DisplayName("sendMessage - deve lançar exceção quando usuário não é membro")
     void sendMessage_deveLancarExcecaoQuandoNaoEhMembro() {
         when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
@@ -148,7 +176,7 @@ class MessageServiceTest {
     }
 
     // ========================
-    // GET GROUP MESSAGES
+    // OBTER AS MENSAGENS DO GRUPO
     // ========================
 
     @Test
@@ -176,7 +204,7 @@ class MessageServiceTest {
     }
 
     // ========================
-    // GET MESSAGE BY ID
+    // PEGAR MENSAGEM POR ID
     // ========================
 
     @Test
@@ -202,7 +230,7 @@ class MessageServiceTest {
     }
 
     // ========================
-    // DELETE MESSAGE
+    // DELETAR MENSSAGEM
     // ========================
 
     @Test

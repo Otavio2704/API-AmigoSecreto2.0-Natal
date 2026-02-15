@@ -77,19 +77,19 @@ class GroupServiceTest {
                 .name("Amigo Secreto 2025")
                 .description("Confraternização")
                 .admin(admin)
-                .drawDate(LocalDate.of(2025, 12, 20))
+                .drawDate(LocalDate.now().plusDays(30))
                 .createdAt(LocalDateTime.now())
                 .build();
 
         createGroupRequest = CreateGroupRequest.builder()
                 .name("Amigo Secreto 2025")
                 .description("Confraternização")
-                .drawDate(LocalDate.of(2025, 12, 20))
+                .drawDate(LocalDate.now().plusDays(30))
                 .build();
     }
 
     // ========================
-    // CREATE GROUP
+    // CRIAR GRUPO
     // ========================
 
     @Test
@@ -107,7 +107,7 @@ class GroupServiceTest {
         assertThat(response.getAdminUsername()).isEqualTo("admin");
 
         verify(groupRepository).save(any(Group.class));
-        verify(groupMemberRepository).save(any(GroupMember.class)); // admin adicionado como membro
+        verify(groupMemberRepository).save(any(GroupMember.class));
     }
 
     @Test
@@ -122,7 +122,7 @@ class GroupServiceTest {
     }
 
     // ========================
-    // GET USER GROUPS
+    // PEGAR OS USUÁRIOS DOS GRUPOS
     // ========================
 
     @Test
@@ -152,7 +152,7 @@ class GroupServiceTest {
     }
 
     // ========================
-    // GET GROUP BY ID
+    // PEGAR GRUPO POR ID
     // ========================
 
     @Test
@@ -181,7 +181,7 @@ class GroupServiceTest {
     }
 
     // ========================
-    // ADD MEMBER
+    // ADICIONAR MEMBRO
     // ========================
 
     @Test
@@ -226,7 +226,7 @@ class GroupServiceTest {
     }
 
     // ========================
-    // REMOVE MEMBER
+    // REMOVER MEMNBRO
     // ========================
 
     @Test
@@ -249,7 +249,7 @@ class GroupServiceTest {
     void removeMember_deveLancarExcecaoAoTentarRemoverAdmin() {
         when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(admin)); // removendo o próprio admin
+        when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
 
         assertThatThrownBy(() -> groupService.removeMember(1L, 1L, "admin"))
                 .isInstanceOf(BusinessException.class)
@@ -257,7 +257,7 @@ class GroupServiceTest {
     }
 
     // ========================
-    // DELETE GROUP
+    // DELETAR GRUPO
     // ========================
 
     @Test
@@ -284,7 +284,7 @@ class GroupServiceTest {
     }
 
     // ========================
-    // BLOCK USER
+    // BLOQUEAR USUÁRIO
     // ========================
 
     @Test
@@ -315,5 +315,19 @@ class GroupServiceTest {
         assertThatThrownBy(() -> groupService.blockUser(1L, "admin", 2L))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Bloqueio já existe");
+    }
+
+    @Test
+    @DisplayName("blockUser - deve lançar exceção quando usuário tenta bloquear a si mesmo")
+    void blockUser_deveLancarExcecaoQuandoAutoBloquear() {
+        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> groupService.blockUser(1L, "admin", 1L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Você não pode bloquear a si mesmo");
+
+        verify(blockedUserRepository, never()).save(any());
     }
 }
